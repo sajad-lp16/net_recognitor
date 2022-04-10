@@ -20,7 +20,7 @@ class ISP(models.Model):
         blank=True
     )
     is_enable = models.BooleanField(
-        _("expire time"),
+        _("is enable"),
         default=True
     )
     create_time = models.DateTimeField(
@@ -82,6 +82,11 @@ class Country(models.Model):
         auto_now=True
     )
 
+    class Meta:
+        verbose_name = 'country'
+        verbose_name_plural = 'countries'
+        db_table = 'ip_ranges_country'
+
 
 class IpRange(models.Model):
     isp = models.ForeignKey(
@@ -92,7 +97,19 @@ class IpRange(models.Model):
     source = models.ForeignKey(
         to=SourcePool,
         on_delete=models.CASCADE,
-        verbose_name=_("isp")
+        verbose_name=_("source")
+    )
+    city = models.CharField(
+        max_length=100,
+        verbose_name=_('city'),
+        blank=True,
+        null=True
+    )
+    region = models.CharField(
+        max_length=100,
+        verbose_name=_('region'),
+        blank=True,
+        null=True
     )
     ip_network = models.CharField(
         max_length=30,
@@ -133,8 +150,7 @@ class IpRange(models.Model):
         null=True,
         verbose_name=_("organization")
     )
-    address = models.CharField(
-        max_length=300,
+    address = models.TextField(
         null=True,
         blank=True,
         verbose_name=_("address")
