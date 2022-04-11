@@ -47,9 +47,15 @@ class Country(models.Model):
 
 
 class IpRange(models.Model):
-    isp = models.ForeignKey(to=ISP, verbose_name=_("ISP"), on_delete=models.CASCADE)
+    isp = models.ForeignKey(
+        to=ISP, verbose_name=_("ISP"), on_delete=models.CASCADE, null=True, blank=True
+    )
     source = models.ForeignKey(
-        to=SourcePool, on_delete=models.CASCADE, verbose_name=_("source")
+        to=SourcePool,
+        on_delete=models.CASCADE,
+        verbose_name=_("source"),
+        null=True,
+        blank=True,
     )
     city = models.CharField(
         max_length=100, verbose_name=_("city"), blank=True, null=True
@@ -61,9 +67,7 @@ class IpRange(models.Model):
         max_length=30, verbose_name=_("ip network"), null=True, blank=True
     )
     ip_from = models.CharField(_("ip from"), max_length=50, null=True, blank=True)
-    ip_to = models.CharField(
-        _("ip to"), max_length=50, null=True, blank=True
-    )
+    ip_to = models.CharField(_("ip to"), max_length=50, null=True, blank=True)
     is_enable = models.BooleanField(_("is enable"), default=True)
     expire_date = models.DateTimeField(_("expire time"), null=True, blank=True)
     country = models.ForeignKey(

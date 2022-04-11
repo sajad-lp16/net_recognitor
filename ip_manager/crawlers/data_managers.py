@@ -5,7 +5,7 @@ from . import data_collectors
 def ip_info_manager(source):
     data = data_collectors.collect_ip_info(source)
     country = None
-    isp = None
+    isp_id = None
     try:
         country_code = data.get("country").get("code")
         country_name = data.get("country").get("name")
@@ -27,7 +27,8 @@ def ip_info_manager(source):
         )
     if isp_name is not None:
         isp, _ = models.ISP.objects.get_or_create(name=isp_name)
+        isp_id = isp.id
     source_id = models.SourcePool.objects.get(name="ipinfo").id
     return models.IpRange.objects.create(
-        source_id=source_id, country=country, isp_id=isp.id, **data
+        source_id=source_id, country=country, isp_id=isp_id, **data
     )

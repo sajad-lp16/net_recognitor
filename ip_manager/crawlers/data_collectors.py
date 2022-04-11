@@ -7,7 +7,7 @@ from ip_manager.utils.data_format import DATA_FORMAT, COUNTRY_CODE_MAPPER
 
 def get_ip_range(network):
     ip_range = tuple(ipaddress.ip_network(network).hosts())
-    return ip_range[0], ip_range[-1]
+    return str(int(ip_range[0])), str(int(ip_range[-1]))
 
 
 def collect_ip_info(source):
@@ -36,14 +36,14 @@ def collect_ip_info(source):
     model_dict["region"] = data_dict.get("region")
     try:
         country_code = data_dict.get("country")
-        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER[country_code]
+        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
         model_dict["country"]["code"] = country_code
     except AttributeError:
         model_dict["country"]["code"] = None
-    location = data_dict.get("loc").split(",")
+    location = data_dict.get("loc")
     if location is not None:
-        model_dict["longitude"] = location[0]
-        model_dict["latitude"] = location[1]
+        model_dict["longitude"] = location.split(",")[0]
+        model_dict["latitude"] = location.split(",")[1]
     try:
         model_dict["isp"]["name"] = data_dict.get("company").get("name")
     except AttributeError:

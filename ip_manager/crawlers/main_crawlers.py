@@ -32,7 +32,7 @@ def crawl_ip_info(ips, many=False):
     web = webdriver.Firefox(options=options)
 
     with web as driver:
-        wait = WebDriverWait(driver, timeout=10)
+        wait = WebDriverWait(driver, timeout=15)
         driver.get(url)
         wait.until(presence_of_element_located((By.XPATH, login_url_path)))
         driver.find_element(By.XPATH, login_url_path).click()
