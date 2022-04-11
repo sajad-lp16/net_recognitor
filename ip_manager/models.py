@@ -60,11 +60,9 @@ class IpRange(models.Model):
     ip_network = models.CharField(
         max_length=30, verbose_name=_("ip network"), null=True, blank=True
     )
-    ip_from = models.PositiveIntegerField(
-        _("ip from"), db_index=True, null=True, blank=True
-    )
-    ip_to = models.PositiveIntegerField(
-        _("ip to"), db_index=True, null=True, blank=True
+    ip_from = models.CharField(_("ip from"), max_length=50, null=True, blank=True)
+    ip_to = models.CharField(
+        _("ip to"), max_length=50, null=True, blank=True
     )
     is_enable = models.BooleanField(_("is enable"), default=True)
     expire_date = models.DateTimeField(_("expire time"), null=True, blank=True)
