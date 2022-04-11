@@ -8,13 +8,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
 
 # url = 'https://www.facebook.com/'
-url = 'http://tohidi:174pasS@www.youtube.com/'
+url = "http://tohidi:174pasS@www.youtube.com/"
 # url = 'https://www.google.com/'
 
 # proxy_ = "172.16.0.54:808"
 # proxy_ = "172.16.0.54:808"
 
-proxy_ = '172.16.0.55'
+proxy_ = "172.16.0.55"
 
 proxy = Proxy()
 

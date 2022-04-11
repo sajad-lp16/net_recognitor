@@ -6,6 +6,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 ]
 
-admin.site.site_header = 'NetRecognitor'
-admin.site.site_title = 'NetRecognitor'
-admin.site.index_title = 'NetRecognitor'
+admin.site.site_header = "NetRecognitor"
+admin.site.site_title = "NetRecognitor"
+admin.site.index_title = "NetRecognitor"

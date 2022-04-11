@@ -7,7 +7,7 @@ from .tasks import add_ips
 
 class CsvFile(models.Model):
     csv_file = models.FileField(
-        upload_to='csv_files',
+        upload_to="csv_files",
         verbose_name=_("csv file"),
         validators=[FileExtensionValidator(allowed_extensions=["csv"])],
     )

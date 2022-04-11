@@ -8,82 +8,241 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Country',
+            name="Country",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, verbose_name='name')),
-                ('code', models.CharField(max_length=5, null=True, verbose_name='code')),
-                ('create_time', models.DateTimeField(auto_now_add=True, verbose_name='create time')),
-                ('update_time', models.DateTimeField(auto_now=True, verbose_name='update time')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=50, verbose_name="name")),
+                (
+                    "code",
+                    models.CharField(max_length=5, null=True, verbose_name="code"),
+                ),
+                (
+                    "create_time",
+                    models.DateTimeField(auto_now_add=True, verbose_name="create time"),
+                ),
+                (
+                    "update_time",
+                    models.DateTimeField(auto_now=True, verbose_name="update time"),
+                ),
             ],
             options={
-                'verbose_name': 'country',
-                'verbose_name_plural': 'countries',
-                'db_table': 'ip_ranges_country',
+                "verbose_name": "country",
+                "verbose_name_plural": "countries",
+                "db_table": "ip_ranges_country",
             },
         ),
         migrations.CreateModel(
-            name='ISP',
+            name="ISP",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(blank=True, max_length=100, verbose_name='name')),
-                ('description', models.CharField(blank=True, max_length=255, verbose_name='description')),
-                ('tags', models.CharField(blank=True, max_length=100, null=True, verbose_name='tags')),
-                ('is_enable', models.BooleanField(default=True, verbose_name='is enable')),
-                ('create_time', models.DateTimeField(auto_now_add=True, verbose_name='create time')),
-                ('update_time', models.DateTimeField(auto_now=True, verbose_name='update time')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(blank=True, max_length=100, verbose_name="name"),
+                ),
+                (
+                    "description",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="description"
+                    ),
+                ),
+                (
+                    "tags",
+                    models.CharField(
+                        blank=True, max_length=100, null=True, verbose_name="tags"
+                    ),
+                ),
+                (
+                    "is_enable",
+                    models.BooleanField(default=True, verbose_name="is enable"),
+                ),
+                (
+                    "create_time",
+                    models.DateTimeField(auto_now_add=True, verbose_name="create time"),
+                ),
+                (
+                    "update_time",
+                    models.DateTimeField(auto_now=True, verbose_name="update time"),
+                ),
             ],
             options={
-                'verbose_name': 'isp',
-                'verbose_name_plural': 'isps',
-                'db_table': 'ip_manager_isp',
+                "verbose_name": "isp",
+                "verbose_name_plural": "isps",
+                "db_table": "ip_manager_isp",
             },
         ),
         migrations.CreateModel(
-            name='SourcePool',
+            name="SourcePool",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('url', models.URLField()),
-                ('create_time', models.DateTimeField(auto_now_add=True, verbose_name='create time')),
-                ('update_time', models.DateTimeField(auto_now=True, verbose_name='update time')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("url", models.URLField()),
+                (
+                    "create_time",
+                    models.DateTimeField(auto_now_add=True, verbose_name="create time"),
+                ),
+                (
+                    "update_time",
+                    models.DateTimeField(auto_now=True, verbose_name="update time"),
+                ),
             ],
             options={
-                'verbose_name': 'source',
-                'verbose_name_plural': 'sources',
-                'db_table': 'ip_manager_source',
+                "verbose_name": "source",
+                "verbose_name_plural": "sources",
+                "db_table": "ip_manager_source",
             },
         ),
         migrations.CreateModel(
-            name='IpRange',
+            name="IpRange",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('city', models.CharField(blank=True, max_length=100, null=True, verbose_name='city')),
-                ('region', models.CharField(blank=True, max_length=100, null=True, verbose_name='region')),
-                ('ip_network', models.CharField(blank=True, max_length=30, null=True, verbose_name='ip network')),
-                ('ip_from', models.PositiveIntegerField(blank=True, db_index=True, null=True, verbose_name='ip from')),
-                ('ip_to', models.PositiveIntegerField(blank=True, db_index=True, null=True, verbose_name='ip to')),
-                ('is_enable', models.BooleanField(default=True, verbose_name='is enable')),
-                ('expire_date', models.DateTimeField(blank=True, null=True, verbose_name='expire time')),
-                ('organization', models.CharField(blank=True, max_length=200, null=True, verbose_name='organization')),
-                ('address', models.TextField(blank=True, null=True, verbose_name='address')),
-                ('latitude', models.DecimalField(blank=True, decimal_places=5, max_digits=10, null=True, verbose_name='latitude')),
-                ('longitude', models.DecimalField(blank=True, decimal_places=5, max_digits=10, null=True, verbose_name='longitude')),
-                ('create_time', models.DateTimeField(auto_now_add=True, verbose_name='create time')),
-                ('update_time', models.DateTimeField(auto_now=True, verbose_name='update time')),
-                ('country', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ip_manager.Country', verbose_name='country')),
-                ('isp', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ip_manager.ISP', verbose_name='ISP')),
-                ('source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ip_manager.SourcePool', verbose_name='source')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "city",
+                    models.CharField(
+                        blank=True, max_length=100, null=True, verbose_name="city"
+                    ),
+                ),
+                (
+                    "region",
+                    models.CharField(
+                        blank=True, max_length=100, null=True, verbose_name="region"
+                    ),
+                ),
+                (
+                    "ip_network",
+                    models.CharField(
+                        blank=True, max_length=30, null=True, verbose_name="ip network"
+                    ),
+                ),
+                (
+                    "ip_from",
+                    models.PositiveIntegerField(
+                        blank=True, db_index=True, null=True, verbose_name="ip from"
+                    ),
+                ),
+                (
+                    "ip_to",
+                    models.PositiveIntegerField(
+                        blank=True, db_index=True, null=True, verbose_name="ip to"
+                    ),
+                ),
+                (
+                    "is_enable",
+                    models.BooleanField(default=True, verbose_name="is enable"),
+                ),
+                (
+                    "expire_date",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="expire time"
+                    ),
+                ),
+                (
+                    "organization",
+                    models.CharField(
+                        blank=True,
+                        max_length=200,
+                        null=True,
+                        verbose_name="organization",
+                    ),
+                ),
+                (
+                    "address",
+                    models.TextField(blank=True, null=True, verbose_name="address"),
+                ),
+                (
+                    "latitude",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=5,
+                        max_digits=10,
+                        null=True,
+                        verbose_name="latitude",
+                    ),
+                ),
+                (
+                    "longitude",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=5,
+                        max_digits=10,
+                        null=True,
+                        verbose_name="longitude",
+                    ),
+                ),
+                (
+                    "create_time",
+                    models.DateTimeField(auto_now_add=True, verbose_name="create time"),
+                ),
+                (
+                    "update_time",
+                    models.DateTimeField(auto_now=True, verbose_name="update time"),
+                ),
+                (
+                    "country",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ip_manager.Country",
+                        verbose_name="country",
+                    ),
+                ),
+                (
+                    "isp",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ip_manager.ISP",
+                        verbose_name="ISP",
+                    ),
+                ),
+                (
+                    "source",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ip_manager.SourcePool",
+                        verbose_name="source",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'ip_range',
-                'verbose_name_plural': 'ip_ranges',
-                'db_table': 'ip_manager_ip_ranges',
+                "verbose_name": "ip_range",
+                "verbose_name_plural": "ip_ranges",
+                "db_table": "ip_manager_ip_ranges",
             },
         ),
     ]
