@@ -28,6 +28,7 @@ media/
 *.so
 
 # Distribution / packaging
+*.json
 .Python
 build/
 develop-eggs/
