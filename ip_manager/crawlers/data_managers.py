@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from ip_manager import models
 from . import data_collectors
 
@@ -9,24 +7,27 @@ def ip_info_manager(source):
     country = None
     isp = None
     try:
-        country_code = data.get('country').get('code')
+        country_code = data.get("country").get("code")
+        country_name = data.get("country").get("name")
     except AttributeError:
         country_code = None
+        country_name = None
     finally:
-        data.pop('country')
+        data.pop("country")
     try:
-        name = data.get('isp').get('name')
+        isp_name = data.get("isp").get("name")
     except AttributeError:
-        name = None
+        isp_name = None
     finally:
-        data.pop('isp')
+        data.pop("isp")
 
     if country_code is not None:
-        country = models.Country.objects.get_or_create(country_code)
-    if name is not None:
-        isp = models.ISP.objects.get_or_create(name=data.get('isp').get('name'))
+        country, _ = models.Country.objects.get_or_create(
+            name=country_name, code=country_code
+        )
+    if isp_name is not None:
+        isp, _ = models.ISP.objects.get_or_create(name=isp_name)
+    source_id = models.SourcePool.objects.get(name="ipinfo").id
     return models.IpRange.objects.create(
-        country=country,
-        isp=isp,
-        **data
+        source_id=source_id, country=country, isp_id=isp.id, **data
     )

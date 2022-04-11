@@ -1,42 +1,54 @@
-import re
 import json
 import ipaddress
 from copy import deepcopy
 
-from ip_manager.utils.data_format import DATA_FORMAT
+from ip_manager.utils.data_format import DATA_FORMAT, COUNTRY_CODE_MAPPER
+
+
+def get_ip_range(network):
+    ip_range = tuple(ipaddress.ip_network(network).hosts())
+    return ip_range[0], ip_range[-1]
 
 
 def collect_ip_info(source):
-    def _extract_field(pat):
-        return json.loads(re.findall(pat, source)[0])
 
-    def _collect_ip_from_to(network):
-        ip_ranges = tuple(ipaddress.ip_network(network).hosts())
-        return ip_ranges[0], ip_ranges[-1]
+    data_dict = json.loads(source)
+    model_dict = deepcopy(DATA_FORMAT)
+    try:
+        model_dict["ip_network"] = data_dict.get("abuse").get("network")
+        model_dict["ip_from"], model_dict["ip_to"] = get_ip_range(
+            model_dict["ip_network"]
+        )
+    except AttributeError:
+        model_dict["ip_network"] = None
+        model_dict["ip_from"] = None
+        model_dict["ip_to"] = None
+    try:
+        model_dict["organization"] = data_dict.get("company").get("name")
+    except AttributeError:
+        model_dict["organization"] = None
+    try:
+        model_dict["address"] = data_dict.get("abuse").get("address")
+    except AttributeError:
+        model_dict["address"] = None
 
-    data = deepcopy(DATA_FORMAT)
-
-    city_pattern = r'city: (.*)\n'
-    region_pattern = r'region: (.*)\n'
-    location_pattern = r'loc: (.*)\n'
-    country_pattern = r'country: (.*)\n'
-    org_pattern = r'org: (.*)\n'
-    network_pattern = r'network: (.*)\n'
-    address_pattern = r'address: (.*)\n'
-    isp_name_pattern = r'\bname: (.*)\n'
-
-    location_data = _extract_field(location_pattern)
-    ip_network = _extract_field(network_pattern)
-
-    data['isp'] = {'name': _extract_field(isp_name_pattern)}
-    data['city'] = _extract_field(city_pattern)
-    data['region'] = _extract_field(region_pattern)
-    data['ip_network'] = ip_network
-    data['country'] = {'name': _extract_field(country_pattern)}
-    data['organization'] = _extract_field(org_pattern)
-    data['address'] = _extract_field(address_pattern)
-    data['longitude'] = location_data.split(',')[0]
-    data['latitude'] = location_data.split(',')[1]
-    data['ip_from'], data['ip_to'] = _collect_ip_from_to(ip_network)
-
-    return data
+    model_dict["city"] = data_dict.get("city")
+    model_dict["region"] = data_dict.get("region")
+    try:
+        country_code = data_dict.get("country")
+        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER[country_code]
+        model_dict["country"]["code"] = country_code
+    except AttributeError:
+        model_dict["country"]["code"] = None
+    location = data_dict.get("loc").split(",")
+    if location is not None:
+        model_dict["longitude"] = location[0]
+        model_dict["latitude"] = location[1]
+    try:
+        model_dict["isp"]["name"] = data_dict.get("company").get("name")
+    except AttributeError:
+        try:
+            model_dict["isp"]["name"] = data_dict.get("asn").get("name")
+        except AttributeError:
+            model_dict["isp"]["name"] = None
+    return model_dict

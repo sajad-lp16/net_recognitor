@@ -1,6 +1,7 @@
-from ipaddress import ip_address
+import ipaddress
 
 from django.utils import timezone
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import views
@@ -16,17 +17,19 @@ class IpDataAPI(views.APIView):
     serializer_class = IpRangeSerializer
 
     def get(self, request):
-        source = request.query_params.get('source') or 'default'
-        ip = request.query_params.get('ip') or None
+        source = request.query_params.get("source") or settings.DEFAULT_SOURCE
+        ip = request.query_params.get("ip") or None
         try:
-            int_ip = ip_address(ip)
+            int_ip = int(ipaddress.IPv4Address(ip))
         except (ValueError, TypeError):
-            return Response({'details': _('Invalid ip address')}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"details": _("Invalid ip address")}, status=status.HTTP_400_BAD_REQUEST
+            )
         ip_range = models.IpRange.objects.filter(
             source__name=source.casefold(),
-            expire_date__lt=timezone.now(),
+            expire_date__gte=timezone.now(),
             ip_from__lte=int_ip,
-            ip_to__gte=int_ip
+            ip_to__gte=int_ip,
         ).first()
         if ip_range is not None:
             return Response(
