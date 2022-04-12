@@ -44,15 +44,13 @@ def crawl_ip_info(ips, many=False):
         ip_box = driver.find_element(By.XPATH, ip_input_path)
         wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
         wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        submit_button = driver.find_element(By.XPATH, submit_butt_path)
         if many:
             assert isinstance(ips, list)
             for ip in ips:
                 ip_box.send_keys(ip)
-                submit_button.click()
-                data_source = driver.find_element(By.XPATH, data_target).text
-                data_managers.ip_info_manager(data_source)
                 sleep(2)
+                data_managers.ip_info_manager(pyperclip.paste())
+                sleep(1)
         else:
             ip_box.send_keys(ips)
             sleep(2)
