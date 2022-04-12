@@ -1,5 +1,8 @@
 from time import sleep
 import pyperclip
+import requests
+
+from django.conf import settings
 
 from celery import shared_task
 from selenium import webdriver
@@ -59,10 +62,10 @@ def crawl_ip_info(ips, many=False):
 
 
 @shared_task
-def crawl_ip_registry(ips, many=False):
-    url = "https://ipregistry.co/"
-    ip_input_path = '//*[@id="iptocheck"]'
-    submit_butt_path = '//*[@id="ipcheck_submit"]'
+def crawl_ip_data(ips, many=False):
+    url = "https://ipdata.co/"
+    ip_input_path = '//*[@id="searchIP"]'
+    submit_butt_path = '//*[@id="searchIPButton"]'
 
     options = Options()
     options.set_preference("dom.webnotifications.enabled", False)
@@ -92,10 +95,24 @@ def crawl_ip_registry(ips, many=False):
 
 
 @shared_task
-def crawl_ip_data(ips, many=False):
-    url = "https://ipdata.co/"
-    ip_input_path = '//*[@id="searchIP"]'
-    submit_butt_path = '//*[@id="searchIPButton"]'
+def crawl_ip_data_api(ips, many=False):
+    payload = {"api-key": settings.IP_DATA_TOKEN}
+    path = "https://api.ipdata.co/"
+    if many:
+        assert isinstance(ips, list)
+        for ip in ips:
+            data = requests.get(path + ip, params=payload).json()
+            data_managers.ip_data_manager(data, is_api=True)
+    else:
+        data = requests.get(path + ips, params=payload).json()
+        return data_managers.ip_data_manager(data, is_api=True)
+
+
+@shared_task
+def crawl_ip_registry(ips, many=False):
+    url = "https://ipregistry.co/"
+    ip_input_path = '//*[@id="iptocheck"]'
+    submit_butt_path = '//*[@id="ipcheck_submit"]'
 
     options = Options()
     options.set_preference("dom.webnotifications.enabled", False)

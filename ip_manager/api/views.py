@@ -22,7 +22,7 @@ class IpDataAPI(views.APIView):
         source = request.query_params.get("source") or settings.DEFAULT_SOURCE
         ip = request.query_params.get("ip") or None
         try:
-            int_ip = int(ipaddress.IPv4Address(ip))
+            int_ip = int(ipaddress.ip_address(ip))
         except (ValueError, TypeError):
             return Response(
                 {"details": _("Invalid ip address")}, status=status.HTTP_400_BAD_REQUEST
@@ -45,6 +45,14 @@ class IpDataAPI(views.APIView):
                 self.serializer_class(ip_range).data, status=status.HTTP_200_OK
             )
         crawler = CRAWLERS_MAPPER.get(source.casefold())
-        return Response(
-            self.serializer_class(crawler(ip)).data, status=status.HTTP_200_OK
-        )
+        try:
+            return Response(
+                self.serializer_class(crawler(ip)).data, status=status.HTTP_200_OK
+            )
+        except:
+            return Response(
+                {
+                    "detail": _("service is unavailable now."),
+                    status: status.HTTP_404_NOT_FOUND,
+                }
+            )

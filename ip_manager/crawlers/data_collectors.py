@@ -6,12 +6,13 @@ from ip_manager.utils.data_format import DATA_FORMAT, COUNTRY_CODE_MAPPER
 
 
 def get_ip_range(network):
+    if network is None:
+        return None, None
     ip_range = tuple(ipaddress.ip_network(network).hosts())
     return str(int(ip_range[0])), str(int(ip_range[-1]))
 
 
 def collect_ip_info(source):
-
     data_dict = json.loads(source)
     model_dict = deepcopy(DATA_FORMAT)
     try:
@@ -20,25 +21,24 @@ def collect_ip_info(source):
             model_dict["ip_network"]
         )
     except AttributeError:
-        model_dict["ip_network"] = None
-        model_dict["ip_from"] = None
-        model_dict["ip_to"] = None
+        pass
     try:
         model_dict["organization"] = data_dict.get("company").get("name")
     except AttributeError:
-        model_dict["organization"] = None
+        pass
     try:
         model_dict["address"] = data_dict.get("abuse").get("address")
     except AttributeError:
-        model_dict["address"] = None
+        pass
 
     model_dict["city"] = data_dict.get("city")
     model_dict["region"] = data_dict.get("region")
-    try:
-        country_code = data_dict.get("country")
+    country_code = data_dict.get("country")
+    if country_code is not None:
         model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
         model_dict["country"]["code"] = country_code
-    except AttributeError:
+    else:
+        model_dict["country"]["name"] = None
         model_dict["country"]["code"] = None
     location = data_dict.get("loc")
     if location is not None:
@@ -52,3 +52,39 @@ def collect_ip_info(source):
         except AttributeError:
             model_dict["isp"]["name"] = None
     return model_dict
+
+
+def collect_ip_data_api(data):
+    model_dict = deepcopy(DATA_FORMAT)
+    try:
+        model_dict["ip_network"] = data.get("asn").get("route")
+        model_dict["ip_from"], model_dict["ip_to"] = get_ip_range(
+            model_dict["ip_network"]
+        )
+    except AttributeError:
+        pass
+
+    try:
+        model_dict["organization"] = data.get("asn").get("name")
+    except AttributeError:
+        pass
+    model_dict["city"] = data.get("city")
+    model_dict["region"] = data.get("region")
+    country_code = data.get("country_code")
+    if country_code is not None:
+        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
+        model_dict["country"]["code"] = country_code
+    else:
+        model_dict["country"]["name"] = None
+        model_dict["country"]["code"] = None
+    model_dict["latitude"] = data.get("latitude")
+    model_dict["longitude"] = data.get("longitude")
+    try:
+        model_dict["isp"]["name"] = data.get("asn").get("name")
+    except AttributeError:
+        pass
+    return model_dict
+
+
+def collect_ip_data(source):
+    pass

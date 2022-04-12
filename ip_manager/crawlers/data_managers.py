@@ -2,8 +2,7 @@ from ip_manager import models
 from . import data_collectors
 
 
-def ip_info_manager(source):
-    data = data_collectors.collect_ip_info(source)
+def base_manager(data, source_name):
     country = None
     isp_id = None
     try:
@@ -28,7 +27,20 @@ def ip_info_manager(source):
     if isp_name is not None:
         isp, _ = models.ISP.objects.get_or_create(name=isp_name)
         isp_id = isp.id
-    source_id = models.SourcePool.objects.get(name="ipinfo").id
+    source_id = models.SourcePool.objects.get(name=source_name).id
     return models.IpRange.objects.create(
         source_id=source_id, country=country, isp_id=isp_id, **data
     )
+
+
+def ip_info_manager(source):
+    data = data_collectors.collect_ip_info(source)
+    return base_manager(data, "ipinfo")
+
+
+def ip_data_manager(source, is_api=False):
+    if is_api:
+        data = data_collectors.collect_ip_data_api(source)
+    else:
+        data = data_collectors.collect_ip_data(source)
+    return base_manager(data, "ipdata")

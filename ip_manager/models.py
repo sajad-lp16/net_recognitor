@@ -102,3 +102,6 @@ class IpRange(models.Model):
         db_table = "ip_manager_ip_ranges"
         verbose_name = _("ip_range")
         verbose_name_plural = _("ip_ranges")
+
+    def __str__(self):
+        return self.ip_network or self.source
