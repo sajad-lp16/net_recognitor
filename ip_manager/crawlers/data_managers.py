@@ -44,3 +44,8 @@ def ip_data_manager(source, is_api=False):
     else:
         data = data_collectors.collect_ip_data(source)
     return base_manager(data, "ipdata")
+
+
+def my_ip_manager(source):
+    data = data_collectors.collect_my_ip_data(source)
+    return base_manager(data, "myip")

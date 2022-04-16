@@ -46,8 +46,9 @@ class IpDataAPI(views.APIView):
             )
         crawler = CRAWLERS_MAPPER.get(source.casefold())
         try:
+            instance = crawler(ip)
             return Response(
-                self.serializer_class(crawler(ip)).data, status=status.HTTP_200_OK
+                self.serializer_class(instance).data, status=status.HTTP_200_OK
             )
         except:
             return Response(

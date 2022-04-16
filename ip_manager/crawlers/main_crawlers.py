@@ -144,9 +144,13 @@ def crawl_ip_registry(ips, many=False):
 @shared_task
 def crawl_myip(ips, many=False):
     url = "https://myip.ms"
-    ip_input_path = '//*[@id="home_txt"]'
-    submit_butt_path = '//*[@id="home_submit"]'
+    ip_input_path = '//*[@id="global_txt"]'
+    submit_butt_path = '//*[@id="global_submit"]'
+    login_button_path = "/html/body/div[1]/div/table/tbody/tr/td/table[1]/tbody/tr/td[2]/div[2]/span[2]/a[1]"
     robo_test = '//*[@id="captcha_submit"]'
+
+    login_submit_button_class_name = "ui-button-text"
+    dialog_id = "uidialog"
 
     options = Options()
     options.set_preference("dom.webnotifications.enabled", False)
@@ -156,9 +160,29 @@ def crawl_myip(ips, many=False):
     with web as driver:
         wait = WebDriverWait(driver, timeout=10)
         driver.get(url)
+        wait.until(presence_of_element_located((By.XPATH, login_button_path)))
+        driver.execute_script("window.stop();")
+        driver.find_element(By.XPATH, login_button_path).click()
+        sleep(1)
+
+        dialog = driver.find_element(By.ID, dialog_id)
+        dialog.find_element(By.ID, "email").send_keys(settings.AUTH_EMAIL_ADDRESS)
+        dialog.find_element(By.ID, "password").send_keys(settings.AUTH_EMAIL_PASSWORD)
+
+        dialog.find_element(By.CLASS_NAME, login_submit_button_class_name).click()
+        sleep(3)
+        try:
+            driver.find_element(By.XPATH, robo_test).click()
+        except:
+            pass
+        try:
+            driver.find_element(By.XPATH, robo_test).click()
+        except:
+            pass
+
         wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
         wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
-
+        driver.execute_script("window.stop();")
         ip_box = driver.find_element(By.XPATH, ip_input_path)
         submit_button = driver.find_element(By.XPATH, submit_butt_path)
 
@@ -171,12 +195,21 @@ def crawl_myip(ips, many=False):
                     driver.find_element(By.XPATH, robo_test).click()
                 except:
                     pass
+                try:
+                    driver.find_element(By.XPATH, robo_test).click()
+                except:
+                    pass
                 # call ip_data_store
                 sleep(3)
         else:
             ip_box.send_keys(ips)
             submit_button.click()
-            return  # ip data store
+            sleep(3)
+            try:
+                driver.find_element(By.XPATH, robo_test).click()
+            except:
+                pass
+            return data_managers.my_ip_manager(driver.page_source)
 
 
 @shared_task

@@ -1,6 +1,7 @@
 import json
 import ipaddress
 from copy import deepcopy
+from bs4 import BeautifulSoup
 
 from ip_manager.utils.data_format import DATA_FORMAT, COUNTRY_CODE_MAPPER
 
@@ -88,3 +89,64 @@ def collect_ip_data_api(data):
 
 def collect_ip_data(source):
     pass
+
+
+def collect_my_ip_data(source):
+    model_dict = deepcopy(DATA_FORMAT)
+
+    def _get_dict_data(soup_obj):
+        dict_data = {}
+        elems = soup_obj.select("tr.odd") + soup_obj.select("tr.even")
+        for elem in elems:
+            try:
+                keys = elem.select(".bold")
+                if len(keys) >= 1:
+                    try:
+                        key, value, *_ = elem.text.split(": ")
+                    except ValueError:
+                        key, value, *_ = elem.text.split(":")
+                    dict_data[key.strip()] = value.strip()
+                if "country" in elem.text:
+                    try:
+                        _, country = elem.text.split(": ")
+                    except ValueError:
+                        _, country = elem.text.split(":")
+                    dict_data["country_code"] = country.strip()
+                elif "netname" in elem.text:
+                    try:
+                        _, isp = elem.text.split(": ")
+                    except ValueError:
+                        _, isp = elem.text.split(":")
+                    dict_data["isp_name"] = isp.strip()
+            except Exception as e:
+                print(e)
+                print(elem)
+                break
+        return dict_data
+
+    soup = BeautifulSoup(source, "html.parser")
+    data_dict = _get_dict_data(soup)
+
+    data_mapping = {
+        "address": "Owner Address",
+        "organization": "IP Owner",
+        "ip_network": "Owner CIDR",
+    }
+    model_dict["address"] = data_dict.get(data_mapping["address"])
+    model_dict["organization"] = data_dict.get(data_mapping["organization"])
+    model_dict["ip_network"] = data_dict.get(data_mapping["ip_network"])
+
+    country_code = data_dict.get("country_code")
+    if country_code is not None:
+        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
+        model_dict["country"]["code"] = country_code
+
+    isp_name = data_dict.get("isp_name")
+    try:
+        model_dict["isp"]["name"] = isp_name
+    except AttributeError:
+        pass
+
+    model_dict["ip_from"], model_dict["ip_to"] = get_ip_range(model_dict["ip_network"])
+
+    return model_dict
