@@ -18,8 +18,8 @@ from . import data_managers
 @shared_task
 def crawl_ip_info(ips, many=False):
     url = "https://ipinfo.io/"
-    email = "s.dagh.20.hd.hd@gmail.com"
-    password = "Aa@123456"
+    email = settings.AUTH_EMAIL_ADDRESS
+    password = settings.AUTH_EMAIL_PASSWORD
     email_input_path = "/html/body/div/div/div/div/form/div[2]/input"
     password_input_path = "/html/body/div[1]/div/div/div/form/div[3]/input"
     login_url_path = "/html/body/header/nav/div/div/ul[1]/li[1]/a"
