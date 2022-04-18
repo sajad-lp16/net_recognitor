@@ -47,6 +47,14 @@ class Country(models.Model):
 
 
 class IpRange(models.Model):
+    IPV4 = 4
+    IPV6 = 6
+
+    IP_TYPES = (
+        (IPV4, _("IPV4")),
+        (IPV6, _("IPV6")),
+    )
+
     isp = models.ForeignKey(
         to=ISP, verbose_name=_("ISP"), on_delete=models.CASCADE, null=True, blank=True
     )
@@ -68,6 +76,7 @@ class IpRange(models.Model):
     )
     ip_from = models.CharField(_("ip from"), max_length=50, null=True, blank=True)
     ip_to = models.CharField(_("ip to"), max_length=50, null=True, blank=True)
+    version = models.CharField(_("version"), max_length=2, choices=IP_TYPES)
     is_enable = models.BooleanField(_("is enable"), default=True)
     expire_date = models.DateTimeField(_("expire time"), null=True, blank=True)
     country = models.ForeignKey(

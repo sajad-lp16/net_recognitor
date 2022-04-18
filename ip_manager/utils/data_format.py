@@ -7,6 +7,7 @@ DATA_FORMAT = {
     "city": None,
     "region": None,
     "ip_network": None,
+    "version": None,
     "ip_from": None,
     "ip_to": None,
     "country": {},
@@ -14,7 +15,6 @@ DATA_FORMAT = {
     "address": None,
     "latitude": None,
     "longitude": None,
-    "source": None,
     "expire_date": timezone.now()
     + timezone.timedelta(days=settings.IP_RANGE_EXPIRE_DAYS),
 }

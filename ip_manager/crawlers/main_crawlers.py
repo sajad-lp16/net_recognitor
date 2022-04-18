@@ -11,200 +11,320 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.support.expected_conditions import presence_of_element_located
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
 
 from . import data_managers
 
 
-def get_web_driver():
-    capa = DesiredCapabilities.CHROME
-    capa["pageLoadStrategy"] = "none"
-    return webdriver.Chrome(desired_capabilities=capa)
+# ----------------------------------------- Base_Classes --------------------------------------------------------
+class BaseDriver:
+    __instance = {}
+
+    def __new__(cls, *args, **kwargs):
+        if BaseDriver.__instance.get(cls) is None:
+            BaseDriver.__instance[cls] = super().__new__(cls, *args, **kwargs)
+        return BaseDriver.__instance[cls]
+
+    @staticmethod
+    def _get_driver():
+        feature = DesiredCapabilities.CHROME
+        feature["pageLoadStrategy"] = "none"
+        driver = webdriver.Chrome(desired_capabilities=feature)
+        driver.maximize_window()
+        return driver
+
+    @property
+    def driver(self):
+        return self._get_driver()
 
 
-@shared_task
-def crawl_ip_info(ips, many=False):
-    url = "https://ipinfo.io/"
-    email = settings.AUTH_EMAIL_ADDRESS
-    password = settings.AUTH_EMAIL_PASSWORD
-    email_input_path = "/html/body/div/div/div/div/form/div[2]/input"
-    password_input_path = "/html/body/div[1]/div/div/div/form/div[3]/input"
-    login_url_path = "/html/body/header/nav/div/div/ul[1]/li[1]/a"
-    login_butt_path = "/html/body/div[1]/div/div/div/form/button"
-    ip_input_path = "/html/body/div[1]/div/div[2]/div[1]/input"
-    submit_butt_path = "/html/body/div[1]/div/div[2]/div[1]/div/button[4]"
-    json_data_button = (
-        "/html/body/div[1]/div/div[2]/div[2]/div/div[1]/div/div[2]/button"
-    )
+class BaseCrawler:
+    def __init__(self, **kwargs):
+        self.url = kwargs.get("url")
+        self.driver_obj = BaseDriver()
 
-    web = get_web_driver()
+    def crawl(self, ips, many):
+        raise NotImplementedError
 
-    with web as driver:
-        wait = WebDriverWait(driver, timeout=15)
-        driver.get(url)
-        wait.until(presence_of_element_located((By.XPATH, login_url_path)))
-        driver.find_element(By.XPATH, login_url_path).click()
-        wait.until(presence_of_element_located((By.XPATH, email_input_path)))
-        driver.find_element(By.XPATH, email_input_path).send_keys(email)
-        driver.find_element(By.XPATH, password_input_path).send_keys(password)
-        driver.find_element(By.XPATH, login_butt_path).click()
-        wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        ip_box = driver.find_element(By.XPATH, ip_input_path)
-        wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
-        wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        if many:
-            assert isinstance(ips, list)
-            for ip in ips:
-                ip_box.send_keys(ip)
+    def _login_crawl(self, ips, many):
+        raise NotImplementedError
+
+    def _no_login_crawl(self, ips, many):
+        raise NotImplementedError
+
+
+# --------------------------------------------Crawlers ----------------------------------------------------------
+
+
+class IPInfoCrawler(BaseCrawler):
+    def __init__(self, url):
+        self.url = url
+        self.email = settings.AUTH_EMAIL_ADDRESS
+        self.password = settings.AUTH_EMAIL_PASSWORD
+        self.email_input_path = "/html/body/div/div/div/div/form/div[2]/input"
+        self.password_input_path = "/html/body/div[1]/div/div/div/form/div[3]/input"
+        self.login_url_path = (
+            '//*[@id="__next"]/div/header/nav/div[1]/div[5]/div[2]/a[1]'
+        )
+        self.login_butt_path = "/html/body/div[1]/div/div/div/form/button"
+        self.ip_input_path = "/html/body/div[1]/div/div[2]/div[1]/input"
+        self.submit_butt_path = "/html/body/div[1]/div/div[2]/div[1]/div/button[4]"
+        self.json_data_button = (
+            "/html/body/div[1]/div/div[2]/div[2]/div/div[1]/div/div[2]/button"
+        )
+        self.ip_input_path_n_login = '//*[@id="homepage-search-input"]'
+        self.submit_butt_path_n_login = (
+            "/html/body/div[1]/div[1]/div/div/div/div/div/div[3]/div/div[1]/button"
+        )
+        self.data_target = '//*[@id="ipw_main_area"]'
+        self.manager_obj = data_managers.IPInfoManager()
+        super().__init__(url=url)
+
+    def crawl(self, ips, many):
+        return self._login_crawl(ips, many)
+
+    def _login_crawl(self, ips, many=False):
+        web = self.driver_obj.driver
+        with web as driver:
+            wait = WebDriverWait(driver, timeout=settings.DRIVER_TIMEOUT)
+            driver.get(self.url)
+            wait.until(presence_of_element_located((By.XPATH, self.login_url_path)))
+            driver.execute_script("window.stop();")
+            driver.find_element(By.XPATH, self.login_url_path).click()
+            wait.until(presence_of_element_located((By.XPATH, self.email_input_path)))
+            driver.execute_script("window.stop();")
+            driver.find_element(By.XPATH, self.email_input_path).send_keys(self.email)
+            driver.find_element(By.XPATH, self.password_input_path).send_keys(
+                self.password
+            )
+            driver.find_element(By.XPATH, self.login_butt_path).click()
+            wait.until(presence_of_element_located((By.XPATH, self.ip_input_path)))
+            driver.execute_script("window.stop();")
+            ip_box = driver.find_element(By.XPATH, self.ip_input_path)
+            wait.until(presence_of_element_located((By.XPATH, self.submit_butt_path)))
+            wait.until(presence_of_element_located((By.XPATH, self.ip_input_path)))
+            driver.execute_script("window.stop();")
+            if many:
+                assert isinstance(ips, list)
+                for ip in ips:
+                    ip_box.send_keys(ip)
+                    sleep(2)
+                    self.manager_obj.login_manager(pyperclip.paste())
+                    sleep(1)
+            else:
+                ip_box.send_keys(ips)
                 sleep(2)
-                data_managers.ip_info_manager(pyperclip.paste())
-                sleep(1)
-        else:
-            ip_box.send_keys(ips)
+                driver.find_element(By.XPATH, self.json_data_button).click()
+                return self.manager_obj.login_manager(pyperclip.paste())
+
+    def _no_login_crawl(self, ips, many=False):
+
+        web = self.driver_obj.driver
+
+        with web as driver:
+            wait = WebDriverWait(driver, timeout=10)
+            driver.get(self.url)
+            wait.until(
+                presence_of_element_located((By.XPATH, self.ip_input_path_n_login))
+            )
+            wait.until(
+                presence_of_element_located((By.XPATH, self.submit_butt_path_n_login))
+            )
+
+            ip_box = driver.find_element(By.XPATH, self.ip_input_path_n_login)
+            submit_button = driver.find_element(By.XPATH, self.ip_input_path_n_login)
+
+            if many:
+                assert isinstance(ips, list)
+                for ip in ips:
+                    ip_box.send_keys(ip)
+                    submit_button.click()
+                    data_source = driver.find_element(By.XPATH, self.data_target).text
+                    self.manager_obj.login_manager(data_source)
+                    sleep(2)
+            else:
+                ip_box.send_keys(ips)
+                submit_button.click()
+                sleep(2)
+                data_source = driver.find_element(By.XPATH, self.data_target).text
+                return self.manager_obj.login_manager(data_source)
+
+
+class MyIpCrawler(BaseCrawler):
+    def __init__(self, url):
+        self.url = "https://myip.ms"
+        self.ip_input_path = '//*[@id="global_txt"]'
+        self.submit_butt_path = '//*[@id="global_submit"]'
+        self.login_button_path = "/html/body/div[1]/div/table/tbody/tr/td/table[1]/tbody/tr/td[2]/div[2]/span[2]/a[1]"
+        self.robo_test = '//*[@id="captcha_submit"]'
+        self.login_submit_button_class_name = "ui-button-text"
+        self.dialog_id = "uidialog"
+        self.manager = data_managers.MyIPManager()
+        super().__init__(url=url)
+
+    def crawl(self, ips, many=False):
+        return self._login_crawl(ips, many)
+
+    def _login_crawl(self, ips, many=False):
+        web = self.driver_obj.driver
+
+        with web as driver:
+            wait = WebDriverWait(driver, timeout=settings.DRIVER_TIMEOUT)
+            driver.get(self.url)
+            wait.until(presence_of_element_located((By.XPATH, self.login_button_path)))
             sleep(2)
-            driver.find_element(By.XPATH, json_data_button).click()
-            return data_managers.ip_info_manager(pyperclip.paste())
+            driver.execute_script("window.stop();")
+            driver.find_element(By.XPATH, self.login_button_path).click()
+            wait.until(presence_of_element_located((By.ID, self.dialog_id)))
+            sleep(2)
+            dialog = driver.find_element(By.ID, self.dialog_id)
+            dialog.find_element(By.ID, "email").send_keys(settings.AUTH_EMAIL_ADDRESS)
+            dialog.find_element(By.ID, "password").send_keys(
+                settings.AUTH_EMAIL_PASSWORD
+            )
 
-
-@shared_task
-def crawl_ip_data(ips, many=False):
-    url = "https://ipdata.co/"
-    ip_input_path = '//*[@id="searchIP"]'
-    submit_butt_path = '//*[@id="searchIPButton"]'
-
-    web = get_web_driver()
-
-    with web as driver:
-        wait = WebDriverWait(driver, timeout=10)
-        driver.get(url)
-        wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
-
-        ip_box = driver.find_element(By.XPATH, ip_input_path)
-        submit_button = driver.find_element(By.XPATH, submit_butt_path)
-
-        if many:
-            assert isinstance(ips, list)
-            for ip in ips:
-                ip_box.send_keys(ip)
-                submit_button.click()
-                # call ip_data_store
-                sleep(3)
-        else:
-            ip_box.send_keys(ips)
-            submit_button.click()
-            return  # ip data store
-
-
-@shared_task
-def crawl_ip_data_api(ips, many=False):
-    payload = {"api-key": settings.IP_DATA_TOKEN}
-    path = "https://api.ipdata.co/"
-    if many:
-        assert isinstance(ips, list)
-        for ip in ips:
-            data = requests.get(path + ip, params=payload).json()
-            data_managers.ip_data_manager(data, is_api=True)
-    else:
-        data = requests.get(path + ips, params=payload).json()
-        return data_managers.ip_data_manager(data, is_api=True)
-
-
-@shared_task
-def crawl_myip(ips, many=False):
-    url = "https://myip.ms"
-    ip_input_path = '//*[@id="global_txt"]'
-    submit_butt_path = '//*[@id="global_submit"]'
-    login_button_path = "/html/body/div[1]/div/table/tbody/tr/td/table[1]/tbody/tr/td[2]/div[2]/span[2]/a[1]"
-    robo_test = '//*[@id="captcha_submit"]'
-
-    login_submit_button_class_name = "ui-button-text"
-    dialog_id = "uidialog"
-
-    web = get_web_driver()
-
-    with web as driver:
-        wait = WebDriverWait(driver, timeout=10)
-        driver.get(url)
-        wait.until(presence_of_element_located((By.XPATH, login_button_path)))
-        driver.execute_script("window.stop();")
-        driver.find_element(By.XPATH, login_button_path).click()
-        sleep(1)
-
-        dialog = driver.find_element(By.ID, dialog_id)
-        dialog.find_element(By.ID, "email").send_keys(settings.AUTH_EMAIL_ADDRESS)
-        dialog.find_element(By.ID, "password").send_keys(settings.AUTH_EMAIL_PASSWORD)
-
-        dialog.find_element(By.CLASS_NAME, login_submit_button_class_name).click()
-        sleep(3)
-        try:
-            driver.find_element(By.XPATH, robo_test).click()
-        except:
-            pass
-        try:
-            driver.find_element(By.XPATH, robo_test).click()
-        except:
-            pass
-
-        wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
-        driver.execute_script("window.stop();")
-        ip_box = driver.find_element(By.XPATH, ip_input_path)
-        submit_button = driver.find_element(By.XPATH, submit_butt_path)
-
-        if many:
-            assert isinstance(ips, list)
-            for ip in ips:
-                ip_box.send_keys(ip)
-                submit_button.click()
-                try:
-                    driver.find_element(By.XPATH, robo_test).click()
-                except:
-                    pass
-                try:
-                    driver.find_element(By.XPATH, robo_test).click()
-                except:
-                    pass
-                # call ip_data_store
-                sleep(3)
-        else:
-            ip_box.send_keys(ips)
-            submit_button.click()
-            sleep(3)
+            dialog.find_element(
+                By.CLASS_NAME, self.login_submit_button_class_name
+            ).click()
+            sleep(1)
+            wait.until(presence_of_element_located((By.XPATH, self.robo_test)))
+            sleep(4)
+            driver.find_element(By.XPATH, self.robo_test).click()
+            sleep(4)
             try:
-                driver.find_element(By.XPATH, robo_test).click()
+                driver.find_element(By.XPATH, self.robo_test).click()
             except:
                 pass
-            return data_managers.my_ip_manager(driver.page_source)
+
+            wait.until(presence_of_element_located((By.XPATH, self.ip_input_path)))
+            wait.until(presence_of_element_located((By.XPATH, self.submit_butt_path)))
+            driver.execute_script("window.stop();")
+            ip_box = driver.find_element(By.XPATH, self.ip_input_path)
+            submit_button = driver.find_element(By.XPATH, self.submit_butt_path)
+            if many:
+                assert isinstance(ips, list)
+                for ip in ips:
+                    ip_box.send_keys(ip)
+                    submit_button.click()
+                    sleep(4)
+                    try:
+                        driver.find_element(By.XPATH, self.robo_test).click()
+                        sleep(4)
+                        driver.find_element(By.XPATH, self.robo_test).click()
+                    except:
+                        pass
+                    sleep(3)
+            else:
+                ip_box.send_keys(ips)
+                submit_button.click()
+                sleep(4)
+                try:
+                    driver.find_element(By.XPATH, self.robo_test).click()
+                    sleep(4)
+                    driver.find_element(By.XPATH, self.robo_test).click()
+                except:
+                    pass
+                return self.manager.login_manager(driver.page_source)
+
+    def _no_login_crawl(self, ips, many=False):
+        pass
+
+
+class IPDataCrawler(BaseCrawler):
+    def __init__(self, url):
+        self.payload = {"api-key": settings.IP_DATA_TOKEN}
+        self.path = settings.CRAWL_SOURCES.get("ipdata_api")
+        self.manager_obj = data_managers.IPDataManager()
+        super().__init__(url=url)
+
+    def crawl(self, ips, many):
+        pass
+
+    def _login_crawl(self, ips, many):
+        if many:
+            assert isinstance(ips, list)
+            for ip in ips:
+                data = requests.get(self.path + ip, params=self.payload).json()
+                self.manager_obj.login_manager(data)
+        else:
+            data = requests.get(self.path + ips, params=self.payload).json()
+            return self.manager_obj.login_manager(data)
+
+    def _no_login_crawl(self, ips, many):
+        pass
+
+
+class RipeCrawler(BaseCrawler):
+    def __init__(self, url):
+        self.ip_input_path = '//*[@id="searchtext"]'
+        self.submit_butt_path = (
+            "/html/body/header/div/div/div[3]/div[1]/div/div[1]/form/div/button"
+        )
+        super().__init__(url=url)
+
+    def crawl(self, ips, many):
+        pass
+
+    def _no_login_crawl(self, ips, many=False):
+        web = self.driver_obj.driver
+
+        with web as driver:
+            wait = WebDriverWait(driver, timeout=settings.DRIVER_TIMEOUT)
+            driver.get(self.url)
+            wait.until(presence_of_element_located((By.XPATH, self.ip_input_path)))
+            wait.until(presence_of_element_located((By.XPATH, self.submit_butt_path)))
+
+            ip_box = driver.find_element(By.XPATH, self.ip_input_path)
+            submit_button = driver.find_element(By.XPATH, self.submit_butt_path)
+
+            if many:
+                assert isinstance(ips, list)
+                for ip in ips:
+                    ip_box.send_keys(ip)
+                    submit_button.click()
+                    sleep(3)
+            else:
+                ip_box.send_keys(ips)
+                submit_button.click()
+                return
+
+    def _login_crawl(self, ips, many):
+        pass
+
+
+# --------------------------------------------- Tasks ----------------------------------------------------------
 
 
 @shared_task
 def crawl_ripe(ips, many=False):
-    url = "https://www.ripe.net"
-    ip_input_path = '//*[@id="searchtext"]'
-    submit_butt_path = (
-        "/html/body/header/div/div/div[3]/div[1]/div/div[1]/form/div/button"
-    )
+    source_url = settings.CRAWL_SOURCES.get("ripe")
+    if source_url is None:
+        return
+    crawler = RipeCrawler(source_url)
+    return crawler.crawl(ips, many)
 
-    web = get_web_driver()
 
-    with web as driver:
-        wait = WebDriverWait(driver, timeout=10)
-        driver.get(url)
-        wait.until(presence_of_element_located((By.XPATH, ip_input_path)))
-        wait.until(presence_of_element_located((By.XPATH, submit_butt_path)))
+@shared_task
+def crawl_my_ip(ips, many=False):
+    source_url = settings.CRAWL_SOURCES.get("myip")
+    if source_url is None:
+        return
+    crawler = MyIpCrawler(source_url)
+    return crawler.crawl(ips, many)
 
-        ip_box = driver.find_element(By.XPATH, ip_input_path)
-        submit_button = driver.find_element(By.XPATH, submit_butt_path)
 
-        if many:
-            assert isinstance(ips, list)
-            for ip in ips:
-                ip_box.send_keys(ip)
-                submit_button.click()
-                # call ip_data_store
-                sleep(3)
-        else:
-            ip_box.send_keys(ips)
-            submit_button.click()
-            return  # ip data store
+@shared_task
+def crawl_ip_info(ips, many=False):
+    source_url = settings.CRAWL_SOURCES.get("ipinfo")
+    if source_url is None:
+        return
+    crawler = IPInfoCrawler(source_url)
+    return crawler.crawl(ips, many)
+
+
+@shared_task
+def crawl_ip_data(ips, many=False):
+    source_url = settings.CRAWL_SOURCES.get("ipdata")
+    if source_url is None:
+        return
+    crawler = IPDataCrawler(source_url)
+    return crawler.crawl(ips, many)
