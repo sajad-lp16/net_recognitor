@@ -18,18 +18,25 @@ class BaseCollector:
         return str(first), str(last)
 
     @staticmethod
-    def _get_ip_version(network):
+    def _get_version_network(network):
         if network is None:
             return
         network_obj = ipaddress.ip_network(network)
-        if network_obj.__class__.__name__ == "IPv6Address":
+        if network_obj.__class__.__name__ == "IPv6Network":
             return 6
         return 4
 
     @staticmethod
-    def set_city_country(model_dict, data):
-        model_dict["city"] = data.get("city")
-        model_dict["region"] = data.get("region")
+    def _get_version_ip(ip):
+        if ip is None:
+            return
+        ip_obj = ipaddress.ip_address(ip)
+        if ip_obj.__class__.__name__ == "IPv6Address":
+            return 6
+        return 4
+
+    @staticmethod
+    def set_country(model_dict, data):
         country_code = data.get("country_code")
         if country_code is not None:
             model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
@@ -37,22 +44,49 @@ class BaseCollector:
         else:
             model_dict["country"]["name"] = None
             model_dict["country"]["code"] = None
-        model_dict["latitude"] = data.get("latitude")
-        model_dict["longitude"] = data.get("longitude")
+
+    def version_setter(self, model_dict):
+        if model_dict["ip_network"] is None:
+            model_dict["version"] = self._get_version_ip(model_dict["ip_from"])
+        else:
+            model_dict["version"] = self._get_version_network(model_dict["ip_network"])
+        return model_dict
+
+    @staticmethod
+    def get_field(pat, target):
+        if target is None:
+            return
+        data = re.findall(pat, target)
+        if data:
+            return data[0]
 
 
 class IPInfoCollector(BaseCollector):
+    def __init__(self):
+        self.city_pattern = r"city: (.*)\n"
+        self.region_pattern = r"region: (.*)\n"
+        self.location_pattern = r"loc: (.*)\n"
+        self.country_pattern = r"country: (.*)\n"
+        self.org_pattern = r"org: (.*)\n"
+        self.network_pattern = r"network: (.*)\n"
+        self.address_pattern = r"address: (.*)\n"
+        self.isp_name_pattern = r"\bname: (.*)\n"
+
     def login_collect(self, source):
         data_dict = json.loads(source)
         model_dict = deepcopy(DATA_FORMAT)
-        self.set_city_country(model_dict, data_dict)
+        self.set_country(model_dict, data_dict)
+        model_dict["city"] = data_dict.get("city")
+        model_dict["region"] = data_dict.get("region")
+        model_dict["latitude"] = data_dict.get("latitude")
+        model_dict["longitude"] = data_dict.get("longitude")
         try:
             network = data_dict.get("abuse").get("network")
             model_dict["ip_network"] = network
             model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
                 model_dict["ip_network"]
             )
-            model_dict["version"] = self._get_ip_version(network)
+            model_dict["version"] = self._get_version_network(network)
         except AttributeError:
             pass
         try:
@@ -75,7 +109,7 @@ class IPInfoCollector(BaseCollector):
                 model_dict["isp"]["name"] = data_dict.get("asn").get("name")
             except AttributeError:
                 model_dict["isp"]["name"] = None
-        return model_dict
+        return self.version_setter(model_dict)
 
     def no_login_collector(self, source):
         def _extract_field(pat):
@@ -85,50 +119,62 @@ class IPInfoCollector(BaseCollector):
                 return
 
         model_dict = deepcopy(DATA_FORMAT)
-
-        city_pattern = r"city: (.*)\n"
-        region_pattern = r"region: (.*)\n"
-        location_pattern = r"loc: (.*)\n"
-        country_pattern = r"country: (.*)\n"
-        org_pattern = r"org: (.*)\n"
-        network_pattern = r"network: (.*)\n"
-        address_pattern = r"address: (.*)\n"
-        isp_name_pattern = r"\bname: (.*)\n"
-
-        location_data = _extract_field(location_pattern)
-        ip_network = _extract_field(network_pattern)
-        country_code = _extract_field(country_pattern)
+        location_data = _extract_field(self.location_pattern)
+        ip_network = _extract_field(self.network_pattern)
+        country_code = _extract_field(self.country_pattern)
         country_name = COUNTRY_CODE_MAPPER.get(country_code)
 
-        model_dict["isp"] = {"name": _extract_field(isp_name_pattern)}
-        model_dict["city"] = _extract_field(city_pattern)
-        model_dict["region"] = _extract_field(region_pattern)
+        model_dict["isp"] = {"name": _extract_field(self.isp_name_pattern)}
+        model_dict["city"] = _extract_field(self.city_pattern)
+        model_dict["region"] = _extract_field(self.region_pattern)
         model_dict["ip_network"] = ip_network
-        model_dict["version"] = self._get_ip_version(ip_network)
+        model_dict["version"] = self._get_version_network(ip_network)
         model_dict["country"] = {
             "name": country_name,
             "code": country_code,
         }
-        model_dict["organization"] = _extract_field(org_pattern)
-        model_dict["address"] = _extract_field(address_pattern)
+        model_dict["organization"] = _extract_field(self.org_pattern)
+        model_dict["address"] = _extract_field(self.address_pattern)
         model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(ip_network)
         if location_data is not None:
             model_dict["longitude"] = location_data.split(",")[0]
             model_dict["latitude"] = location_data.split(",")[1]
 
-        return model_dict
+        return self.version_setter(model_dict)
 
 
 class IPDataCollector(BaseCollector):
-    def login_collect(self, data):
+    def __init__(self):
+
+        self.city_pattern = r'\n*CITY\n([^\n]+)\n'
+        self.region_pattern = r'\n*REGION NAME\n([^\n]+)\n'
+        self.country_code_pattern = r'\n*COUNTRY CODE\n([^\n]+)\n'
+        self.latitude_pattern = r'\n*LATITUDE\n([^\n]+)\n'
+        self.longitude_pattern = r'\n*LONGITUDE\n([^\n]+)\n'
+        self.organization_pattern = r'\n*ORGANIZATION\n([^\n]+)\n'
+        self.ip_network_pattern = r'\n*ROUTE\n([^\n]+)\n'
+
+        self.asn_pattern_n = r"asn: {[^}]+}"
+        self.company_pattern_n = r"company: {[^}]+}"
+        self.name_pattern_n = r'name: "([^"]+)"'
+        self.region_pattern_n = r'region: "([^"]+)"'
+        self.country_code_pattern_n = r'country_code: "([^"]+)"'
+        self.latitude_pattern_n = r"latitude: ([^\n,]+)"
+        self.longitude_pattern_n = r"longitude: ([^\n,]+)"
+        self.ip_network_pattern_n = r'route: "([^\n,]+)"'
+
+    def login_api_collect(self, data):
         model_dict = deepcopy(DATA_FORMAT)
-        self.set_city_country(model_dict, data)
+        self.set_country(model_dict, data)
+        model_dict["city"] = data.get("city")
+        model_dict["region"] = data.get("region")
+        model_dict["latitude"] = data.get("latitude")
+        model_dict["longitude"] = data.get("longitude")
         try:
-            model_dict["ip_network"] = data.get("asn").get("route")
-            model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
-                model_dict["ip_network"]
-            )
-            model_dict["version"] = self._get_ip_version(network)
+            network = data.get("asn").get("route")
+            model_dict["ip_network"] = network
+            model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(network)
+            model_dict["version"] = self._get_version_network(network)
         except AttributeError:
             pass
         try:
@@ -139,10 +185,55 @@ class IPDataCollector(BaseCollector):
             model_dict["organization"] = data.get("asn").get("name")
         except AttributeError:
             pass
-        return model_dict
+        return self.version_setter(model_dict)
 
-    def collect(self, source):
-        pass
+    def no_login_collect(self, source):
+        asn_data = self.get_field(self.asn_pattern_n, source)
+        company_data = self.get_field(self.company_pattern_n, source)
+        model_dict = deepcopy(DATA_FORMAT)
+        model_dict["region"] = self.get_field(self.region_pattern_n, source)
+        model_dict["country"]["code"] = self.get_field(
+            self.country_code_pattern_n, source
+        )
+        model_dict["latitude"] = self.get_field(self.latitude_pattern_n, source)
+        model_dict["longitude"] = self.get_field(self.longitude_pattern_n, source)
+
+        model_dict["isp"]["name"] = self.get_field(self.name_pattern_n, asn_data)
+        model_dict["ip_network"] = self.get_field(self.ip_network_pattern_n, asn_data)
+        model_dict["organization"] = self.get_field(self.name_pattern_n, company_data)
+        model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
+            model_dict["ip_network"]
+        )
+        country_code = model_dict["country"].get("code")
+        if country_code is not None:
+            model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
+            model_dict["country"]["code"] = country_code
+        else:
+            model_dict["country"]["name"] = None
+            model_dict["country"]["code"] = None
+        return self.version_setter(model_dict)
+
+    def login_collect(self, source):
+        model_dict = deepcopy(DATA_FORMAT)
+        model_dict["city"] = self.get_field(self.city_pattern, source)
+        model_dict["region"] = self.get_field(self.region_pattern, source)
+        model_dict["country"]["code"] = self.get_field(self.country_code_pattern, source)
+        model_dict["latitude"] = self.get_field(self.latitude_pattern, source)
+        model_dict["longitude"] = self.get_field(self.longitude_pattern, source)
+        model_dict["ip_network"] = self.get_field(self.ip_network_pattern, source)
+        model_dict["organization"] = self.get_field(self.organization_pattern, source)
+        model_dict["isp"]["name"] = self.get_field(self.organization_pattern, source)
+        model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
+            model_dict["ip_network"]
+        )
+        country_code = model_dict["country"].get("code")
+        if country_code is not None:
+            model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
+            model_dict["country"]["code"] = country_code
+        else:
+            model_dict["country"]["name"] = None
+            model_dict["country"]["code"] = None
+        return self.version_setter(model_dict)
 
 
 class MyIPCollector(BaseCollector):
@@ -161,22 +252,20 @@ class MyIPCollector(BaseCollector):
                         except ValueError:
                             key, value, *_ = elem.text.split(":")
                         dict_data[key.strip()] = value.strip()
-                    if "country" in elem.text:
+                    if "country" in elem.text.casefold():
                         try:
                             _, country = elem.text.split(": ")
                         except ValueError:
                             _, country = elem.text.split(":")
                         dict_data["country_code"] = country.strip()
-                    elif "netname" in elem.text:
+                    elif "netname" in elem.text.casefold():
                         try:
                             _, isp = elem.text.split(": ")
                         except ValueError:
                             _, isp = elem.text.split(":")
                         dict_data["isp_name"] = isp.strip()
-                except Exception as e:
-                    print(e)
-                    print(elem)
-                    break
+                except:
+                    pass
             return dict_data
 
         soup = BeautifulSoup(source, "html.parser")
@@ -191,7 +280,7 @@ class MyIPCollector(BaseCollector):
         model_dict["address"] = data_dict.get(data_mapping["address"])
         model_dict["organization"] = data_dict.get(data_mapping["organization"])
         model_dict["ip_network"] = network
-        model_dict["version"] = self._get_ip_version(network)
+        model_dict["version"] = self._get_version_network(network)
 
         country_code = data_dict.get("country_code")
         if country_code is not None:
@@ -208,43 +297,60 @@ class MyIPCollector(BaseCollector):
             model_dict["ip_network"]
         )
 
-        return model_dict
+        return self.version_setter(model_dict)
 
 
 class RipeCollector(BaseCollector):
     def login_collect(self, source):
         pass
 
-    @staticmethod
-    def no_login_collect(source):
-        model_data = deepcopy(DATA_FORMAT)
+    def no_login_collect(self, source):
+        pass
+
+    def no_login_api_collect(self, source):
+        model_dict = deepcopy(DATA_FORMAT)
         try:
             source = source["objects"]["object"]
         except KeyError:
-            return model_data
+            return model_dict
         for data_fields in source:
             if data_fields.get("type") == "inetnum":
                 try:
                     source = data_fields.get("attributes").get("attribute")
                 except AttributeError:
-                    return model_data
+                    return model_dict
                 for item in source:
                     if item.get("name") == "country":
-                        model_data["country"]["code"] = item.get("value")
+                        country_code = item.get("value")
+                        model_dict["country"]["code"] = item.get("value")
+                        model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(
+                            country_code
+                        )
                     elif item.get("name") == "mnt-by":
-                        model_data["isp"]["name"] = item.get("value")
+                        model_dict["isp"]["name"] = item.get("value")
                     elif item.get("name") == "geoloc":
                         location = item.get("value").split(" -")
-                        model_data["longitude"] = location[0]
-                        model_data["latitude"] = location[1]
+                        model_dict["longitude"] = location[0]
+                        model_dict["latitude"] = location[1]
                     elif item.get("name") == "netname":
-                        model_data["organization"] = item.get("value")
+                        model_dict["organization"] = item.get("value")
                     elif item.get("name") == "inetnum":
                         ip_range = item.get("value").split(" - ")
-                        model_data["ip_from"] = str(
+                        model_dict["ip_from"] = str(
                             int(ipaddress.ip_address(ip_range[0]))
                         )
-                        model_data["ip_to"] = str(
+                        model_dict["ip_to"] = str(
                             int(ipaddress.ip_address(ip_range[1]))
                         )
-        return model_data
+            elif data_fields.get("type") == "route":
+                try:
+                    source_routes = data_fields.get("attributes").get("attribute")
+                except AttributeError:
+                    source_routes = None
+
+                if source_routes is not None:
+                    for item in source_routes:
+                        if item.get("name") == "route":
+                            model_dict["ip_network"] = item.get("value")
+                            break
+        return self.version_setter(model_dict)
