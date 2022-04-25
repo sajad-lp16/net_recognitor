@@ -17,6 +17,10 @@ from ip_manager import models
 
 
 class IpDataAPI(views.APIView):
+
+    __INVALID_IP_ERROR_MESSAGE = _("Invalid ip address")
+    __SERVICE_ERROR = _("Service is Unavailable now")
+
     serializer_class = IpRangeSerializer
 
     def get(self, request):
@@ -27,12 +31,12 @@ class IpDataAPI(views.APIView):
         try:
             ip_type = ipaddress.ip_address(ip)
             int_ip = int(ip_type)
-            is_ipv6 = ip_type.__class__.__name__ == "IPv6Address"
+            ip_version = 6 if ip_type.__class__.__name__ == "IPv6Address" else 4
         except (ValueError, TypeError):
             return Response(
                 {"details": _("Invalid ip address")}, status=status.HTTP_400_BAD_REQUEST
             )
-        if not is_ipv6:
+        if ip_version == 4:
             ip_range = (
                 models.IpRange.objects.annotate(
                     int_ip_from=Cast("ip_from", output_field=IntegerField()),
@@ -40,15 +44,18 @@ class IpDataAPI(views.APIView):
                 )
                 .filter(
                     source__name=source.casefold(),
-                    expire_date__gte=timezone.now(),
+                    # expire_date__gte=timezone.now(),
                     int_ip_from__lte=int_ip,
                     int_ip_to__gte=int_ip,
                 )
                 .first()
             )
         else:
-            ip_range = get_ipv6_range(ip)
-        if ip_range is not None:
+            self.__SERVICE_ERROR = _(
+                str(self.__SERVICE_ERROR) + " Or Source Doesnt Support IPV6"
+            )
+            ip_range = get_ipv6_range(ip, source)
+        if ip_range is not None and ip_range.expire_date > timezone.now():
             return Response(
                 self.serializer_class(ip_range).data, status=status.HTTP_200_OK
             )
@@ -56,12 +63,22 @@ class IpDataAPI(views.APIView):
         crawler = CRAWLERS_MAPPER.get(source.casefold())
         try:
             instance = crawler(ip)
-            assert instance is not None
+            if ip_range is None:
+                assert instance is not None
+            if instance.version is None:
+                instance.version = ip_version
+            if instance is None:
+                return Response(
+                    self.serializer_class(ip_range).data, status=status.HTTP_200_OK
+                )
+            if ip_range is not None:
+                ip_range.delete()
+            instance.save()
             return Response(
                 self.serializer_class(instance).data, status=status.HTTP_200_OK
             )
         except:
             return Response(
-                {"detail": _("service is unavailable or source doesnt support ipv6")},
+                {"detail": self.__SERVICE_ERROR},
                 status.HTTP_404_NOT_FOUND,
             )

@@ -14,11 +14,16 @@ def add_initial_sources():
         models.SourcePool.objects.get_or_create(name=source[0], url=source[1])
 
 
-def get_ipv6_range(ip):
+def get_ipv6_range(ip, source):
     ip_obj = ipaddress.ip_address(ip)
-    ip_ranges = models.IpRange.objects.filter(
-        version=6,
-    ).values("id", "ip_network", "ip_from", "ip_to")
+    ip_ranges = (
+        models.IpRange.objects.filter(
+            version=6,
+            source__name=source,
+        )
+        .exclude(ip_from__isnull=True, ip_to__isnull=True, ip_network__isnull=True)
+        .values("id", "ip_network", "ip_from", "ip_to")
+    )
 
     for ip_range in ip_ranges:
         if ip_range["ip_network"] is None:

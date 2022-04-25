@@ -67,7 +67,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOCALE_PATHS = [
+    str(BASE_DIR / "locale"),
+]
+
 LANGUAGE_CODE = "en-us"
+# LANGUAGE_CODE = "fa"
 
 TIME_ZONE = "UTC"
 

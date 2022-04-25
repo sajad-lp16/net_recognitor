@@ -29,4 +29,4 @@ class CsvFile(models.Model):
             force_insert=False, force_update=False, using=None, update_fields=None
         )
 
-        add_ips.delay(self.create_time)
+        add_ips(self.create_time)

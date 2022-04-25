@@ -45,9 +45,7 @@ class BaseDataManager:
             functions.add_initial_sources()
             source = models.SourcePool.objects.get(name=source_name)
         try:
-            return models.IpRange.objects.create(
-                source=source, country=country, isp_id=isp_id, **data
-            )
+            return models.IpRange(source=source, country=country, isp_id=isp_id, **data)
         except:
             return
 
@@ -61,18 +59,17 @@ class IPInfoManager(BaseDataManager):
         return self.manage(data, "ipinfo")
 
     def no_login_manager(self, source):
-        pass
+        data = self.collector.no_login_collect(source)
+        return self.manage(data, "ipinfo")
 
 
 class IPDataManager(BaseDataManager):
     def __init__(self):
         self.collector = data_collectors.IPDataCollector()
 
-
     def login_manager(self, source):
         data = self.collector.login_collect(source)
         return self.manage(data, "ipdata")
-
 
     def login_api_manager(self, source):
         data = self.collector.login_api_collect(source)
@@ -92,7 +89,8 @@ class MyIPManager(BaseDataManager):
         return self.manage(data, "myip")
 
     def no_login_manager(self, source):
-        pass
+        data = self.collector.no_login_collect(source)
+        return self.manage(data, "myip")
 
 
 class RipeManager(BaseDataManager):

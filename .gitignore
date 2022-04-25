@@ -27,6 +27,8 @@ media/
 # C extensions
 *.so
 
+*.django.mo*
+
 # Distribution / packaging
 *.json
 .Python

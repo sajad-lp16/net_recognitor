@@ -113,4 +113,4 @@ class IpRange(models.Model):
         verbose_name_plural = _("ip_ranges")
 
     def __str__(self):
-        return self.ip_network or self.source
+        return str(self.source.name) or self.ip_network

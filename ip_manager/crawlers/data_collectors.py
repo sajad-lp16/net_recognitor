@@ -8,14 +8,25 @@ from ip_manager.utils.data_format import DATA_FORMAT, COUNTRY_CODE_MAPPER
 
 
 class BaseCollector:
+    def login_collect(self, source):
+        raise NotImplementedError
+
+    def no_login_collect(self, source):
+        raise NotImplementedError
+
     @staticmethod
     def _get_ip_range(network):
         if network is None:
             return None, None
         network_obj = ipaddress.ip_network(network)
-        first = int(network_obj.network_address)
-        last = int(network_obj.broadcast_address)
-        return str(first), str(last)
+        return str(network_obj.network_address), str(network_obj.broadcast_address)
+
+    @staticmethod
+    def _ip_to_int(ip):
+        try:
+            return int(ipaddress.ip_address(ip))
+        except:
+            return None
 
     @staticmethod
     def _get_version_network(network):
@@ -50,91 +61,99 @@ class BaseCollector:
             model_dict["version"] = self._get_version_ip(model_dict["ip_from"])
         else:
             model_dict["version"] = self._get_version_network(model_dict["ip_network"])
+        model_dict["ip_from"] = self._ip_to_int(model_dict["ip_from"])
+        model_dict["ip_to"] = self._ip_to_int(model_dict["ip_to"])
         return model_dict
 
     @staticmethod
     def get_field(pat, target):
         if target is None:
             return
-        data = re.findall(pat, target)
+        data = re.findall(pat, target, re.I)
         if data:
             return data[0]
 
 
 class IPInfoCollector(BaseCollector):
     def __init__(self):
-        self.city_pattern = r"city: (.*)\n"
-        self.region_pattern = r"region: (.*)\n"
-        self.location_pattern = r"loc: (.*)\n"
-        self.country_pattern = r"country: (.*)\n"
-        self.org_pattern = r"org: (.*)\n"
-        self.network_pattern = r"network: (.*)\n"
-        self.address_pattern = r"address: (.*)\n"
-        self.isp_name_pattern = r"\bname: (.*)\n"
+
+        # no login patterns --------------------------------------------------------------------------------------------
+        self.city_pattern_n_login = r'\n*city:\n*"([^"]+)"'
+        self.region_pattern_n_login = r'\n*region:\s*\n"([^"]+)"'
+        self.location_pattern_n_login = r'\n*loc:\n\s*"([^"]+)"'
+        self.country_pattern_n_login = r'\n*country:\s*\n"([^"]+)"'
+        self.org_pattern_n_login = r'\n*org:\s*\n"([^"]+)"'
+        self.network_pattern_n_login = r'\n*network:\s*\n"([^"]+)"'
+        self.address_pattern_n_login = r'\n*address:\s*\n"([^"]+)"'
+        self.isp_name_pattern_n_login = r'\nname:\s*\n"([^"]+)"'
+
+        # login patterns --------------------------------------------------------------------------------------------
+        self.city_pattern = r'\n*city:*\n*"([^"]+)"'
+        self.region_pattern = r'\n*region:*\s*\n"([^"]+)"'
+        self.location_pattern = r'\n*loc:*\n\s*"([^"]+)"'
+        self.country_pattern = r'\n*country:*\s*\n"([^"]+)"'
+        self.org_pattern = r'\n*org:*\s*\n"([^"]+)"'
+        self.network_pattern = r'\n*network:*\s*\n"([^"]+)"'
+        self.address_pattern = r'\n*address:*\s*\n"([^"]+)"'
+        self.isp_name_pattern = r'\nname:*\s*\n"([^"]+)"'
+
+    @staticmethod
+    def _extract_field(pat, source):
+        try:
+            return re.findall(pat, source)[0]
+        except IndexError:
+            return
 
     def login_collect(self, source):
-        data_dict = json.loads(source)
         model_dict = deepcopy(DATA_FORMAT)
-        self.set_country(model_dict, data_dict)
-        model_dict["city"] = data_dict.get("city")
-        model_dict["region"] = data_dict.get("region")
-        model_dict["latitude"] = data_dict.get("latitude")
-        model_dict["longitude"] = data_dict.get("longitude")
-        try:
-            network = data_dict.get("abuse").get("network")
-            model_dict["ip_network"] = network
-            model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
-                model_dict["ip_network"]
-            )
-            model_dict["version"] = self._get_version_network(network)
-        except AttributeError:
-            pass
-        try:
-            model_dict["organization"] = data_dict.get("company").get("name")
-        except AttributeError:
-            pass
-        try:
-            model_dict["address"] = data_dict.get("abuse").get("address")
-        except AttributeError:
-            pass
-
-        location = data_dict.get("loc")
-        if location is not None:
-            model_dict["longitude"] = location.split(",")[0]
-            model_dict["latitude"] = location.split(",")[1]
-        try:
-            model_dict["isp"]["name"] = data_dict.get("company").get("name")
-        except AttributeError:
-            try:
-                model_dict["isp"]["name"] = data_dict.get("asn").get("name")
-            except AttributeError:
-                model_dict["isp"]["name"] = None
-        return self.version_setter(model_dict)
-
-    def no_login_collector(self, source):
-        def _extract_field(pat):
-            try:
-                return json.loads(re.findall(pat, source)[0])
-            except IndexError:
-                return
-
-        model_dict = deepcopy(DATA_FORMAT)
-        location_data = _extract_field(self.location_pattern)
-        ip_network = _extract_field(self.network_pattern)
-        country_code = _extract_field(self.country_pattern)
+        location_data = self._extract_field(self.location_pattern, source)
+        ip_network = self._extract_field(self.network_pattern, source)
+        country_code = self._extract_field(self.country_pattern, source)
         country_name = COUNTRY_CODE_MAPPER.get(country_code)
 
-        model_dict["isp"] = {"name": _extract_field(self.isp_name_pattern)}
-        model_dict["city"] = _extract_field(self.city_pattern)
-        model_dict["region"] = _extract_field(self.region_pattern)
+        model_dict["isp"] = {"name": self._extract_field(self.isp_name_pattern, source)}
+        model_dict["city"] = self._extract_field(self.city_pattern, source)
+        model_dict["region"] = self._extract_field(self.region_pattern, source)
         model_dict["ip_network"] = ip_network
         model_dict["version"] = self._get_version_network(ip_network)
         model_dict["country"] = {
             "name": country_name,
             "code": country_code,
         }
-        model_dict["organization"] = _extract_field(self.org_pattern)
-        model_dict["address"] = _extract_field(self.address_pattern)
+        model_dict["organization"] = self._extract_field(self.org_pattern, source)
+        model_dict["address"] = self._extract_field(self.address_pattern, source)
+        model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(ip_network)
+        if location_data is not None:
+            model_dict["longitude"] = location_data.split(",")[0]
+            model_dict["latitude"] = location_data.split(",")[1]
+
+        return self.version_setter(model_dict)
+
+    def no_login_collect(self, source):
+
+        model_dict = deepcopy(DATA_FORMAT)
+        location_data = self._extract_field(self.location_pattern_n_login, source)
+        ip_network = self._extract_field(self.network_pattern_n_login, source)
+        country_code = self._extract_field(self.country_pattern_n_login, source)
+        country_name = COUNTRY_CODE_MAPPER.get(country_code)
+
+        model_dict["isp"] = {
+            "name": self._extract_field(self.isp_name_pattern_n_login, source)
+        }
+        model_dict["city"] = self._extract_field(self.city_pattern_n_login, source)
+        model_dict["region"] = self._extract_field(self.region_pattern_n_login, source)
+        model_dict["ip_network"] = ip_network
+        model_dict["version"] = self._get_version_network(ip_network)
+        model_dict["country"] = {
+            "name": country_name,
+            "code": country_code,
+        }
+        model_dict["organization"] = self._extract_field(
+            self.org_pattern_n_login, source
+        )
+        model_dict["address"] = self._extract_field(
+            self.address_pattern_n_login, source
+        )
         model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(ip_network)
         if location_data is not None:
             model_dict["longitude"] = location_data.split(",")[0]
@@ -146,13 +165,13 @@ class IPInfoCollector(BaseCollector):
 class IPDataCollector(BaseCollector):
     def __init__(self):
 
-        self.city_pattern = r'\n*CITY\n([^\n]+)\n'
-        self.region_pattern = r'\n*REGION NAME\n([^\n]+)\n'
-        self.country_code_pattern = r'\n*COUNTRY CODE\n([^\n]+)\n'
-        self.latitude_pattern = r'\n*LATITUDE\n([^\n]+)\n'
-        self.longitude_pattern = r'\n*LONGITUDE\n([^\n]+)\n'
-        self.organization_pattern = r'\n*ORGANIZATION\n([^\n]+)\n'
-        self.ip_network_pattern = r'\n*ROUTE\n([^\n]+)\n'
+        self.city_pattern = r"\n*CITY\n([^\n]+)\n"
+        self.region_pattern = r"\n*REGION NAME\n([^\n]+)\n"
+        self.country_code_pattern = r"\n*COUNTRY CODE\n([^\n]+)\n"
+        self.latitude_pattern = r"\n*LATITUDE\n([^\n]+)\n"
+        self.longitude_pattern = r"\n*LONGITUDE\n([^\n]+)\n"
+        self.organization_pattern = r"\n*ORGANIZATION\n([^\n]+)\n"
+        self.ip_network_pattern = r"\n*ROUTE\n([^\n]+)\n"
 
         self.asn_pattern_n = r"asn: {[^}]+}"
         self.company_pattern_n = r"company: {[^}]+}"
@@ -217,7 +236,9 @@ class IPDataCollector(BaseCollector):
         model_dict = deepcopy(DATA_FORMAT)
         model_dict["city"] = self.get_field(self.city_pattern, source)
         model_dict["region"] = self.get_field(self.region_pattern, source)
-        model_dict["country"]["code"] = self.get_field(self.country_code_pattern, source)
+        model_dict["country"]["code"] = self.get_field(
+            self.country_code_pattern, source
+        )
         model_dict["latitude"] = self.get_field(self.latitude_pattern, source)
         model_dict["longitude"] = self.get_field(self.longitude_pattern, source)
         model_dict["ip_network"] = self.get_field(self.ip_network_pattern, source)
@@ -299,13 +320,52 @@ class MyIPCollector(BaseCollector):
 
         return self.version_setter(model_dict)
 
-
-class RipeCollector(BaseCollector):
-    def login_collect(self, source):
-        pass
-
     def no_login_collect(self, source):
         pass
+
+
+class RipeCollector(BaseCollector):
+    def __init__(self):
+
+        # no login patterns --------------------------------------------------------------------------------------------
+        self.isp_pattern_n_login = r"\n*netname:\s*([^\n]+)\n*"
+        self.organization_pattern_n_login = r"\n*descr:\s*([^\n]+)\n*"
+        self.country_pattern_n_login = r"\n*country:\s*([^\n#\s]+)\n*"
+        self.route_pattern_n_login = r"\n*route:\s*([^\n]+)\n*"
+        self.ip_range_pattern_n_login = r"\n*inetnum:\s*([^\n]+)\n*"
+
+        self.ip_pattern = r"\s*([^\s-]+)\s*"
+
+    def get_ips_from_text(self, net_range):
+        ips = re.findall(self.ip_pattern, net_range)
+        if not ips:
+            return None, None
+        return ips
+
+    def login_collect(self, source):
+        return self.no_login_collect(source)
+
+    def no_login_collect(self, source):
+        model_dict = deepcopy(DATA_FORMAT)
+        model_dict["isp"]["name"] = self.get_field(self.isp_pattern_n_login, source)
+        model_dict["organization"] = self.get_field(
+            self.organization_pattern_n_login, source
+        )
+        country_code = self.get_field(self.country_pattern_n_login, source)
+        self.set_country(model_dict, {"country_code": country_code})
+        network = self.get_field(self.route_pattern_n_login, source)
+        model_dict["ip_network"] = network
+        if network is not None:
+            model_dict["ip_from"], model_dict["ip_to"] = self._get_ip_range(
+                model_dict["ip_network"]
+            )
+        else:
+            net_range = self.get_field(self.ip_range_pattern_n_login, source)
+            if net_range:
+                model_dict["ip_from"], model_dict["ip_to"] = self.get_ips_from_text(
+                    net_range
+                )
+        return self.version_setter(model_dict)
 
     def no_login_api_collect(self, source):
         model_dict = deepcopy(DATA_FORMAT)
@@ -336,12 +396,8 @@ class RipeCollector(BaseCollector):
                         model_dict["organization"] = item.get("value")
                     elif item.get("name") == "inetnum":
                         ip_range = item.get("value").split(" - ")
-                        model_dict["ip_from"] = str(
-                            int(ipaddress.ip_address(ip_range[0]))
-                        )
-                        model_dict["ip_to"] = str(
-                            int(ipaddress.ip_address(ip_range[1]))
-                        )
+                        model_dict["ip_from"] = str(ipaddress.ip_address(ip_range[0]))
+                        model_dict["ip_to"] = str(ipaddress.ip_address(ip_range[1]))
             elif data_fields.get("type") == "route":
                 try:
                     source_routes = data_fields.get("attributes").get("attribute")

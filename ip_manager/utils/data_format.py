@@ -89,6 +89,7 @@ COUNTRY_CODE_MAPPER = {
     "GQ": "equatorialguinea",
     "ER": "eritrea",
     "EE": "estonia",
+    "EU": "worldwide",
     "SZ": "eswatini",
     "ET": "ethiopia",
     "FK": "falklandislands(the)[malvinas]",
