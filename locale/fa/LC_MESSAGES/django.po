@@ -1,0 +1,160 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-04-20 06:46+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: csv_app/models.py:11
+msgid "csv file"
+msgstr "فایل های CSV"
+
+#: csv_app/models.py:21
+msgid "import csv file"
+msgstr "بارگذاری فایل CSV"
+
+#: csv_app/models.py:22
+msgid "import csv files"
+msgstr "بارگذاری فایل های CSV"
+
+#: ip_manager/api/views.py:21 ip_manager/api/views.py:37
+msgid "Invalid ip address"
+msgstr "آدرس IPنامعتبر است"
+
+#: ip_manager/api/views.py:22
+msgid "Service is Unavailable now"
+msgstr "این سرویس در حال حاضر در دسترس نیست"
+
+#: ip_manager/api/views.py:54
+msgid " Or Source Doesnt Support IPV6"
+msgstr " یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
+
+msgid "Service is Unavailable now Or Source Doesnt Support IPV6"
+msgstr "این سرویس در حال حاضر در دسترس نیست یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
+
+#: ip_manager/models.py:6 ip_manager/models.py:38
+msgid "name"
+msgstr "نام"
+
+#: ip_manager/models.py:7
+msgid "description"
+msgstr "توضیحات"
+
+#: ip_manager/models.py:8
+msgid "tags"
+msgstr "تگ ها"
+
+#: ip_manager/models.py:9 ip_manager/models.py:80
+msgid "is enable"
+msgstr "فعال/غیرفعال"
+
+#: ip_manager/models.py:10 ip_manager/models.py:25 ip_manager/models.py:40
+#: ip_manager/models.py:107
+msgid "create time"
+msgstr "تاریخ ایجاد"
+
+#: ip_manager/models.py:11 ip_manager/models.py:26 ip_manager/models.py:41
+#: ip_manager/models.py:108
+msgid "update time"
+msgstr "تاریخ بروز رسانی"
+
+#: ip_manager/models.py:18
+msgid "isp"
+msgstr "ISP"
+
+#: ip_manager/models.py:19
+msgid "isps"
+msgstr "ISP ها"
+
+#: ip_manager/models.py:33 ip_manager/models.py:64
+msgid "source"
+msgstr "منبع"
+
+#: ip_manager/models.py:34
+msgid "sources"
+msgstr "منابع"
+
+#: ip_manager/models.py:39
+msgid "code"
+msgstr "کد"
+
+#: ip_manager/models.py:54
+msgid "IPV4"
+msgstr "IPV4"
+
+#: ip_manager/models.py:55
+msgid "IPV6"
+msgstr "IPV6"
+
+#: ip_manager/models.py:59
+msgid "ISP"
+msgstr "ISP"
+
+#: ip_manager/models.py:69
+msgid "city"
+msgstr "شهر"
+
+#: ip_manager/models.py:72
+msgid "region"
+msgstr "ناحیه"
+
+#: ip_manager/models.py:75
+msgid "ip network"
+msgstr "آدرس شبکه"
+
+#: ip_manager/models.py:77
+msgid "ip from"
+msgstr "محدوده ی کف"
+
+#: ip_manager/models.py:78
+msgid "ip to"
+msgstr "محدوده ی سقف"
+
+#: ip_manager/models.py:79
+msgid "version"
+msgstr "نسخه"
+
+#: ip_manager/models.py:81
+msgid "expire time"
+msgstr "تاریخ انقضا"
+
+#: ip_manager/models.py:85
+msgid "country"
+msgstr "کشور"
+
+#: ip_manager/models.py:90
+msgid "organization"
+msgstr "شرکت"
+
+#: ip_manager/models.py:92
+msgid "address"
+msgstr "آدرس"
+
+#: ip_manager/models.py:98
+msgid "latitude"
+msgstr "عرض جغرافیایی"
+
+#: ip_manager/models.py:105
+msgid "longitude"
+msgstr "طول جغرافیایی"
+
+#: ip_manager/models.py:112
+msgid "ip_range"
+msgstr "محدوده ی آدرس IP"
+
+#: ip_manager/models.py:113
+msgid "ip_ranges"
+msgstr "محدوده های آٔدرس IP"
