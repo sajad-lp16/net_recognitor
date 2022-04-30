@@ -274,11 +274,12 @@ class MyIPCollector(BaseCollector):
                             key, value, *_ = elem.text.split(":")
                         dict_data[key.strip()] = value.strip()
                     if "country" in elem.text.casefold():
-                        try:
-                            _, country = elem.text.split(": ")
-                        except ValueError:
-                            _, country = elem.text.split(":")
-                        dict_data["country_code"] = country.strip()
+                        if "owner country" not in elem.text.casefold():
+                            try:
+                                _, country = elem.text.split(": ")
+                            except ValueError:
+                                _, country = elem.text.split(":")
+                            dict_data["country_code"] = country.strip()
                     elif "netname" in elem.text.casefold():
                         try:
                             _, isp = elem.text.split(": ")
@@ -305,7 +306,10 @@ class MyIPCollector(BaseCollector):
 
         country_code = data_dict.get("country_code")
         if country_code is not None:
-            model_dict["country"]["name"] = COUNTRY_CODE_MAPPER.get(country_code)
+            country_name = COUNTRY_CODE_MAPPER.get(country_code)
+            if country_name is None:
+                country_code = None
+            model_dict["country"]["name"] = country_name
             model_dict["country"]["code"] = country_code
 
         isp_name = data_dict.get("isp_name")
@@ -321,7 +325,7 @@ class MyIPCollector(BaseCollector):
         return self.version_setter(model_dict)
 
     def no_login_collect(self, source):
-        pass
+        return self.login_collect(source)
 
 
 class RipeCollector(BaseCollector):

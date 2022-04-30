@@ -7,7 +7,6 @@ DATA_FORMAT = {
     "city": None,
     "region": None,
     "ip_network": None,
-    "version": None,
     "ip_from": None,
     "ip_to": None,
     "country": {},

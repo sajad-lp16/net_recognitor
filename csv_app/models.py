@@ -1,8 +1,12 @@
+from logging import getLogger
+
 from django.core.validators import FileExtensionValidator
 from django.utils.translation import ugettext_lazy as _
 from django.db import models
 
 from .tasks import add_ips
+
+logger = getLogger('ip_information')
 
 
 class CsvFile(models.Model):
@@ -23,10 +27,15 @@ class CsvFile(models.Model):
         db_table = "csv_files"
 
     def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
+            self, force_insert=False, force_update=False, using=None, update_fields=None
     ):
-        super(CsvFile, self).save(
+        instance = super(CsvFile, self).save(
             force_insert=False, force_update=False, using=None, update_fields=None
         )
 
-        add_ips(self.create_time)
+        logger.info('Uploaded csv file on {} if being added to celery tasks'.format(
+            str(self.create_time)
+        ))
+        add_ips.delay(self.create_time)
+
+        return instance

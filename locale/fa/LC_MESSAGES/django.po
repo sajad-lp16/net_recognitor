@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-04-20 06:46+0000\n"
+"POT-Creation-Date: 2022-04-30 10:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,20 +30,11 @@ msgstr "بارگذاری فایل CSV"
 msgid "import csv files"
 msgstr "بارگذاری فایل های CSV"
 
-#: ip_manager/api/views.py:21 ip_manager/api/views.py:37
-msgid "Invalid ip address"
+#: ip_manager/api/views.py:33
+#, fuzzy
+#| msgid "Invalid ip address"
+msgid "Invalid Ip Address"
 msgstr "آدرس IPنامعتبر است"
-
-#: ip_manager/api/views.py:22
-msgid "Service is Unavailable now"
-msgstr "این سرویس در حال حاضر در دسترس نیست"
-
-#: ip_manager/api/views.py:54
-msgid " Or Source Doesnt Support IPV6"
-msgstr " یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
-
-msgid "Service is Unavailable now Or Source Doesnt Support IPV6"
-msgstr "این سرویس در حال حاضر در دسترس نیست یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
 
 #: ip_manager/models.py:6 ip_manager/models.py:38
 msgid "name"
@@ -158,3 +149,12 @@ msgstr "محدوده ی آدرس IP"
 #: ip_manager/models.py:113
 msgid "ip_ranges"
 msgstr "محدوده های آٔدرس IP"
+
+msgid "Service is Unavailable now"
+msgstr "این سرویس در حال حاضر در دسترس نیست"
+
+msgid " Or Source Doesnt Support IPV6"
+msgstr " یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
+
+msgid "Service is Unavailable now Or Source Doesnt Support IPV6"
+msgstr "این سرویس در حال حاضر در دسترس نیست یا منبع مورد نظر IPV6 را پشتیبانی نمیکند"
